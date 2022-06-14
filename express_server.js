@@ -9,8 +9,14 @@ const urlDatabase = {
   "9sm5xK": "http://www.google.com"
 };
 
-function generateRandomString() {
-  
+function generateRandomString() { //generating an alpha-numeric string
+  const list = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+  let ans = "";
+  for (let i = 0; i < 6; i++) {
+    let result = Math.floor(Math.random() * list.length);
+    ans += list.charAt(result);
+  } 
+  return ans
 }
 
 const bodyParser = require("body-parser");
@@ -25,8 +31,10 @@ app.get("/urls/new", (req, res) => {
 });
 
 app.post("/urls", (req, res) => {
-  console.log(req.body);  // Log the POST request body to the console
-  res.send("Ok");         // Respond with 'Ok' (we will replace this)
+  let id = generateRandomString();
+  //add key:value pair to object
+  urlDatabase[id] = req.body.longURL;
+  res.redirect(`/urls/:${[id]}`);
 });
 
 app.get("/urls", (req, res) => {
