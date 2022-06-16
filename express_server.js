@@ -62,11 +62,11 @@ app.get("/urls/:shortURL", (req, res) => {
   res.render("urls_show", templateVars);
 });
 
-
-
+// Edit long URL route
 app.post("/urls/:shortURL", (req,res) => {
   const shortURL = req.params.shortURL
-  const longURL = req.body.longURL
+  const longURL = req.body.updatedlongURL
+  console.log("Looking for req.body",req.body)
   console.log(longURL); //check for longURL
   urlDatabase[shortURL] = longURL
   res.redirect("/urls")
