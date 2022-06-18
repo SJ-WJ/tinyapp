@@ -13,9 +13,9 @@
       </div>
     </div>
 
-    <% if (username) {%>
+    <% if (user) {%>
       <div><form class="form-inline" action="/logout" method="POST">
-        <h5>Logged in As: Tiny App User!</h5>
+        <h5>Logged in As: <%= user.email %> </h5>
         <button type="submit" class="btn btn-outline-dark">Logout</button>
       </form>
     </div>
