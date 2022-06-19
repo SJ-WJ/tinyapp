@@ -26,7 +26,7 @@ const users = {
   }
 }
 
-// Helper Functions
+// Helper Functions: Generating random ID's
 function generateRandomString() { //generating an alpha-numeric string
   const list = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
   let ans = "";
@@ -47,11 +47,50 @@ function ifEmailExists(users, email) {
   return false;
 };
 
+// Helper Function: Checking if password exists
+function ifPasswordExists(users, password) {
+  for (let user in users) {
+    if (users[user].password === password) {
+      return true;
+    }
+  } 
+  return false;
+};
+
+// Helper Function: Grabbing exisiting ID's
+function ifIdExists(users, email) {
+  for (let user in users) {
+    if (users[user].email === email) {
+      return users[user].id;
+    }
+  } 
+  return false;
+};
+
 // Routes are down below
+app.get("/login", (req, res) => {
+  const templateVars = { user: users[req.cookies["user_id"]] }
+  res.render("login_page", templateVars)
+})
 
 app.post("/login", (req, res) => {
-  const userName = req.body.username
-  res.cookie('username', userName);
+  console.log("Req Body", req.body);
+  const email = req.body.email
+  const password = req.body.password
+  
+  const emailExists = ifEmailExists(users, email)
+  if (emailExists === false) {
+    return res.status(403).send("This email account cannot be found")
+  }
+  
+  const passwordExists = ifPasswordExists(users, password)
+  console.log(" Pass Check", passwordExists)
+  if (passwordExists === false) {
+    return res.status(403).send("Doesn't match with an existing user's password")
+  }
+  
+  const id = ifIdExists(users, email) //helper function return's id
+  res.cookie('user_id', id);
   res.redirect("/urls");
 })
 
@@ -79,6 +118,9 @@ app.post("/urls", (req, res) => {
 app.get("/urls", (req, res) => {
   // let userId = 
   const templateVars = { urls: urlDatabase, user: users[req.cookies["user_id"]] };
+  console.log("Checking", users[req.cookies["user_id"]])
+  console.log("Checking #2",req.cookies["user_id"])
+  console.log("Checking #3", users)
   res.render("urls_index", templateVars);
 });
 
@@ -122,6 +164,7 @@ app.post("/register", (req, res) => {
     return res.status(400).send("An account with this email already exists")
   }
   users[id] = { id: id, email: email, password: password }
+  console.log("Checking #4", users[id], users)
   
   res.cookie('user_id', id);
   res.redirect("/urls");
