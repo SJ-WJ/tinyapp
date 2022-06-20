@@ -1,5 +1,6 @@
 const express = require("express");
 const cookieParser = require("cookie-parser");
+var bcrypt = require('bcryptjs');
 const app = express();
 app.use(cookieParser());
 const PORT = 8080; // default port 8080
@@ -44,10 +45,10 @@ function generateRandomString() { //generating an alpha-numeric string
 }
 
 // Helper Function: Checking if email exists
-function ifEmailExists(users, email) {
+function getUserByEmail(users, email) {
   for (let user in users) {
     if (users[user].email === email) {
-      return true;
+      return users[user];
     }
   }
   return false;
@@ -64,83 +65,96 @@ function ifPasswordExists(users, password) {
 }
 
 // Helper Function: Grabbing exisiting ID's
-function ifIdExists(users, email) {
-  for (let user in users) {
-    if (users[user].email === email) {
-      return users[user].id;
-    }
-  }
-  return false;
-}
+// function ifIdExists(users, email) {
+//   for (let user in users) {
+//     if (users[user].email === email) {
+//       return users[user].id;
+//     }
+//   }
+//   return false;
+// }
 
-// Routes are down below
+
+// Routing to main page
+app.get("/", (req, res) => {
+  res.redirect("/urls");
+});
+
+// Login Routes
 app.get("/login", (req, res) => {
   const templateVars = { user: users[req.cookies["user_id"]] };
   res.render("login_page", templateVars);
 });
 
 app.post("/login", (req, res) => {
-  console.log("Req Body", req.body);
-  const email = req.body.email;
-  const password = req.body.password;
-
-  const emailExists = ifEmailExists(users, email);
-  if (emailExists === false) {
-    return res.status(403).send("This email account cannot be found");
+  
+  const {email, password} = req.body;
+  if (!email || !password) {
+    return res.status(400).send("Missing email and/or password")
   }
 
-  const passwordExists = ifPasswordExists(users, password);
-  // console.log(" Pass Check", passwordExists);
-  if (passwordExists === false) {
-    return res.status(403).send("Doesn't match with an existing user's password");
+  const user = getUserByEmail(users, email)
+  if (!user) {
+    return res.status(400).send("Invalid credentials")
   }
 
-  const id = ifIdExists(users, email);
-  res.cookie('user_id', id);
+  const validPassword = bcrypt.compareSync(password, user.password);
+  if (!validPassword) {
+    return res.status(400).send("Invalid credentials")
+  }
+ 
+  res.cookie('user_id', user.id);
   res.redirect("/urls");
 });
 
+// Logging Out Route
 app.post("/logout", (req, res) => {
   res.clearCookie("user_id");
   res.redirect("/urls");
 });
 
-app.get("/", (req, res) => {
-  res.redirect("/urls");
-});
-
+// Creating a new Tiny URL
 app.get("/urls/new", (req, res) => {
   const user = users[req.cookies["user_id"]];
   if (!user) {
     res.redirect("/login");
   } else {
-    const templateVars = {user};
-    res.render("urls_new", templateVars);
+    res.render("urls_new", {user});
   }
 });
 
-app.post("/urls", (req, res) => {
-  let userID = users[req.cookies["user_id"].id];
-  const shortURL = generateRandomString();
-  const longURL = req.body.longURL;
-  urlDatabase[shortURL] = {longURL, userID};
-  res.redirect(`/urls/${[shortURL]}`);
-});
-
+// Renders index
 app.get("/urls", (req, res) => {
   const templateVars = { urls: urlDatabase, user: users[req.cookies["user_id"]] };
   res.render("urls_index", templateVars);
 });
 
+// Posting URL's
+app.post("/urls", (req, res) => {
+  let userID = users[req.cookies["user_id"].id];
+  const shortURL = generateRandomString();
+  const longURL = req.body.longURL;
+  urlDatabase[shortURL] = {
+    longURL,
+    userID
+  };
+  res.redirect(`/urls/${[shortURL]}`);
+});
+
+// Route to show Edit page
 app.get("/urls/:shortURL", (req, res) => {
   const shortURL = req.params.shortURL;
   const longURL = urlDatabase[shortURL].longURL;
   const user = users[req.cookies["user_id"]];
-  const templateVars = { shortURL, longURL, user};
+  const templateVars = {
+    shortURL,
+    longURL,
+    user
+  };
   res.render("urls_show", templateVars);
 });
 
-// Edit long URL route
+// Route to edit a longURL
 app.post("/urls/:shortURL", (req, res) => {
   const shortURL = req.params.shortURL;
   const longURL = req.body.updatedlongURL;
@@ -148,32 +162,38 @@ app.post("/urls/:shortURL", (req, res) => {
   res.redirect("/urls");
 });
 
+// Route to delete a ShortURL
 app.post("/urls/:shortURL/delete", (req, res) => {
   let shortURL = req.params.shortURL;
   delete urlDatabase[shortURL];
   res.redirect("/urls");
 });
 
-// Routing registration page to /register
+// Register routes
 app.get("/register", (req, res) => {
   const templateVars = { user: users[req.cookies["user_id"]] };
   res.render("registration_page", templateVars);
 });
 
 app.post("/register", (req, res) => {
-  const email = req.body.email;
-  const password = req.body.password;
-  const id = generateRandomString();
-
+  const {email, password} = req.body;
   if (email === "" || password === "") {
     return res.status(400).send("Email or Password is empty");
   }
-
-  const emailExists = ifEmailExists(users, email);
-  if (emailExists === true) {
+  
+  const emailExists = getUserByEmail(users, email);
+  if (emailExists) {
     return res.status(400).send("An account with this email already exists");
   }
-  users[id] = { id: id, email: email, password: password };
+  
+  const hashPassword = bcrypt.hashSync(password, 10);
+  const id = generateRandomString();
+  users[id] = {
+    id,
+    email,
+    password: hashPassword 
+  };
+
   res.cookie('user_id', id);
   res.redirect("/urls");
 });
