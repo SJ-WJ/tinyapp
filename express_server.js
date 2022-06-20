@@ -9,8 +9,14 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.set("view engine", "ejs"); // Telling Express to use EJS as its templating engine
 
 const urlDatabase = {
-  "b2xVn2": "http://www.lighthouselabs.ca",
-  "9sm5xK": "http://www.google.com"
+  b6UTxQ: {
+        longURL: "https://www.tsn.ca",
+        userID: "aJ48lW"
+    },
+    i3BoGr: {
+        longURL: "https://www.google.ca",
+        userID: "aJ48lW"
+    }
 };
 
 const users = {
@@ -69,7 +75,7 @@ function ifIdExists(users, email) {
 
 // Routes are down below
 app.get("/login", (req, res) => {
-  const templateVars = {user: users[req.cookies["user_id"]]};
+  const templateVars = { user: users[req.cookies["user_id"]] };
   res.render("login_page", templateVars);
 });
 
@@ -77,18 +83,18 @@ app.post("/login", (req, res) => {
   console.log("Req Body", req.body);
   const email = req.body.email;
   const password = req.body.password;
-  
+
   const emailExists = ifEmailExists(users, email);
   if (emailExists === false) {
     return res.status(403).send("This email account cannot be found");
   }
-  
+
   const passwordExists = ifPasswordExists(users, password);
-  console.log(" Pass Check", passwordExists);
+  // console.log(" Pass Check", passwordExists);
   if (passwordExists === false) {
     return res.status(403).send("Doesn't match with an existing user's password");
   }
-  
+
   const id = ifIdExists(users, email);
   res.cookie('user_id', id);
   res.redirect("/urls");
@@ -104,15 +110,21 @@ app.get("/", (req, res) => {
 });
 
 app.get("/urls/new", (req, res) => {
-  const templateVars = { user: users[req.cookies["user_id"]] };
-  res.render("urls_new", templateVars);
+  const user = users[req.cookies["user_id"]];
+  if (!user) {
+    res.redirect("/login");
+  } else {
+    const templateVars = {user};
+    res.render("urls_new", templateVars);
+  }
 });
 
 app.post("/urls", (req, res) => {
-  let id = generateRandomString();
+  let userID = users[req.cookies["user_id"].id];
+  const shortURL = generateRandomString();
   const longURL = req.body.longURL;
-  urlDatabase[id] = longURL;
-  res.redirect(`/urls/${[id]}`);
+  urlDatabase[shortURL] = {longURL, userID};
+  res.redirect(`/urls/${[shortURL]}`);
 });
 
 app.get("/urls", (req, res) => {
@@ -121,7 +133,10 @@ app.get("/urls", (req, res) => {
 });
 
 app.get("/urls/:shortURL", (req, res) => {
-  const templateVars = { shortURL: req.params.shortURL, longURL: urlDatabase[req.params.shortURL], user: users[req.cookies["user_id"]] };
+  const shortURL = req.params.shortURL;
+  const longURL = urlDatabase[shortURL].longURL;
+  const user = users[req.cookies["user_id"]];
+  const templateVars = { shortURL, longURL, user};
   res.render("urls_show", templateVars);
 });
 
@@ -129,7 +144,7 @@ app.get("/urls/:shortURL", (req, res) => {
 app.post("/urls/:shortURL", (req, res) => {
   const shortURL = req.params.shortURL;
   const longURL = req.body.updatedlongURL;
-  urlDatabase[shortURL] = longURL;
+  urlDatabase[shortURL].longURL = longURL;
   res.redirect("/urls");
 });
 
@@ -141,7 +156,7 @@ app.post("/urls/:shortURL/delete", (req, res) => {
 
 // Routing registration page to /register
 app.get("/register", (req, res) => {
-  const templateVars = {user: users[req.cookies["user_id"]]};
+  const templateVars = { user: users[req.cookies["user_id"]] };
   res.render("registration_page", templateVars);
 });
 
@@ -149,11 +164,11 @@ app.post("/register", (req, res) => {
   const email = req.body.email;
   const password = req.body.password;
   const id = generateRandomString();
-  
+
   if (email === "" || password === "") {
     return res.status(400).send("Email or Password is empty");
   }
-  
+
   const emailExists = ifEmailExists(users, email);
   if (emailExists === true) {
     return res.status(400).send("An account with this email already exists");
