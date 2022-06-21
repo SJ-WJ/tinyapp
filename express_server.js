@@ -15,13 +15,13 @@ app.set("view engine", "ejs"); // Telling Express to use EJS as its templating e
 
 const urlDatabase = {
   b6UTxQ: {
-        longURL: "https://www.tsn.ca",
-        userID: "aJ48lW"
-    },
-    i3BoGr: {
-        longURL: "https://www.google.ca",
-        userID: "aJ48lW"
-    }
+    longURL: "https://www.tsn.ca",
+    userID: "aJ48lW"
+  },
+  i3BoGr: {
+    ongURL: "https://www.google.ca",
+    userID: "aJ48lW"
+  }
 };
 
 const users = {
@@ -49,14 +49,7 @@ function generateRandomString() { //generating an alpha-numeric string
 }
 
 // Helper Function: Checking if email exists
-function getUserByEmail(users, email) {
-  for (let user in users) {
-    if (users[user].email === email) {
-      return users[user];
-    }
-  }
-  return false;
-}
+const helpers = require('./helpers');
 
 // Routing to main page
 app.get("/", (req, res) => {
@@ -73,17 +66,17 @@ app.post("/login", (req, res) => {
   
   const {email, password} = req.body;
   if (!email || !password) {
-    return res.status(400).send("Missing email and/or password")
+    return res.status(400).send("Missing email and/or password");
   }
 
-  const user = getUserByEmail(users, email)
+  const user = helpers(users, email);
   if (!user) {
-    return res.status(400).send("Invalid credentials")
+    return res.status(400).send("Invalid credentials");
   }
 
   const validPassword = bcrypt.compareSync(password, user.password);
   if (!validPassword) {
-    return res.status(400).send("Invalid credentials")
+    return res.status(400).send("Invalid credentials");
   }
  
   req.session.user_id = user.id;
@@ -110,7 +103,7 @@ app.get("/urls/new", (req, res) => {
 app.get("/urls", (req, res) => {
   const templateVars = {
     urls: urlDatabase,
-    user: users[req.session.user_id] 
+    user: users[req.session.user_id]
   };
   res.render("urls_index", templateVars);
 });
@@ -167,7 +160,7 @@ app.post("/register", (req, res) => {
     return res.status(400).send("Email or Password is empty");
   }
   
-  const emailExists = getUserByEmail(users, email);
+  const emailExists = helpers(users, email);
   if (emailExists) {
     return res.status(400).send("An account with this email already exists");
   }
@@ -177,7 +170,7 @@ app.post("/register", (req, res) => {
   users[id] = {
     id,
     email,
-    password: hashPassword 
+    password: hashPassword
   };
 
   req.session.user_id = id;
