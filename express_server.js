@@ -19,7 +19,7 @@ const urlDatabase = {
     userID: "aJ48lW"
   },
   i3BoGr: {
-    ongURL: "https://www.google.ca",
+    longURL: "https://www.google.ca",
     userID: "aJ48lW"
   }
 };
