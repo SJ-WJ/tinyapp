@@ -14,42 +14,13 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.set("view engine", "ejs"); // Telling Express to use EJS as its templating engine
 
 const urlDatabase = {
-  b6UTxQ: {
-    longURL: "https://www.tsn.ca",
-    userID: "aJ48lW"
-  },
-  i3BoGr: {
-    longURL: "https://www.google.ca",
-    userID: "aJ48lW"
-  }
 };
 
 const users = {
-  "userRandomID": {
-    id: "userRandomID",
-    email: "user@example.com",
-    password: "purple-monkey-dinosaur"
-  },
-  "user2RandomID": {
-    id: "user2RandomID",
-    email: "user2@example.com",
-    password: "dishwasher-funk"
-  }
 };
 
-// Helper Functions: Generating random ID's
-function generateRandomString() { //generating an alpha-numeric string
-  const list = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-  let ans = "";
-  for (let i = 0; i < 6; i++) {
-    let result = Math.floor(Math.random() * list.length);
-    ans += list.charAt(result);
-  }
-  return ans;
-}
-
-// Helper Function: Checking if email exists
-const helpers = require('./helpers');
+// Helper Functions
+const {generateRandomString, getUserByEmail, urlsForUser} = require('./helpers');
 
 // Routing to main page
 app.get("/", (req, res) => {
@@ -69,7 +40,7 @@ app.post("/login", (req, res) => {
     return res.status(400).send("Missing email and/or password");
   }
 
-  const user = helpers(users, email);
+  const user = getUserByEmail(users, email);
   if (!user) {
     return res.status(400).send("Invalid credentials");
   }
@@ -101,10 +72,12 @@ app.get("/urls/new", (req, res) => {
 
 // Renders index
 app.get("/urls", (req, res) => {
-  const templateVars = {
-    urls: urlDatabase,
-    user: users[req.session.user_id]
-  };
+  const userID = req.session.user_id;
+  const user = users[userID];
+  
+  let urls = urlsForUser(urlDatabase, userID);
+  const templateVars = {urls, user};
+
   res.render("urls_index", templateVars);
 });
 
@@ -160,7 +133,7 @@ app.post("/register", (req, res) => {
     return res.status(400).send("Email or Password is empty");
   }
   
-  const emailExists = helpers(users, email);
+  const emailExists = getUserByEmail(users, email);
   if (emailExists) {
     return res.status(400).send("An account with this email already exists");
   }
